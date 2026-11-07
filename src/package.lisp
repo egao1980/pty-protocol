@@ -19,4 +19,5 @@
    #:pty-alive-p #:pty-wait #:pty-pid #:pty-close #:pty-closed-p
    #:+signals+
    #:merge-environment
+   #:pty-environment #:pty-environment-entries
    #:signal-io-error))

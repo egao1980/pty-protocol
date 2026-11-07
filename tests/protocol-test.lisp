@@ -73,6 +73,14 @@
     (ok (= 1 (count "TERM" env :key #'car :test #'string=))))
   (ok (assoc "PATH" (pp:merge-environment '()) :test #'string=)))
 
+(deftest environment-is-opaque-in-backtraces
+  (with-mock (p '("sh") :environment '(("SECRET" . "hunter2")))
+    (ok (typep (mock-env p) 'pp:pty-environment))
+    (ng (search "hunter2" (prin1-to-string (mock-env p))))
+    (ok (equal (cdr (assoc "SECRET" (pp:pty-environment-entries (mock-env p))
+                           :test #'string=))
+               "hunter2"))))
+
 (deftest spawn-error-use-value
   (let ((pp:*pty-backend* (make-instance 'mock-backend)))
     (ok (signals (pp:spawn-pty '("missing")) 'pp:pty-spawn-error))
