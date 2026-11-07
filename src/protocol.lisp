@@ -11,7 +11,8 @@
 
 (defgeneric backend-spawn-pty (backend command &key cols rows directory environment)
   (:documentation "Start COMMAND (a non-empty list of strings) on a new pty.
-ENVIRONMENT is the complete environment as an alist of strings. → a PTY.
+ENVIRONMENT is a PTY-ENVIRONMENT; PTY-ENVIRONMENT-ENTRIES is the complete
+environment as an alist of strings. → a PTY.
 Signals PTY-SPAWN-ERROR."))
 
 ;;; ------------------------------------------------------------------
@@ -25,6 +26,15 @@ subclass it. One owner thread at a time; the protocol does not lock."))
 
 (defparameter +signals+ '(:hup :int :term :kill)
   "Signals PTY-SIGNAL accepts. Windows terminates the child for :TERM and :KILL.")
+
+(defstruct (pty-environment (:constructor %make-pty-environment (entries)))
+  "The child's environment. Printing shows only a count: the environment
+often holds tokens, and backtraces print frame arguments."
+  (entries '() :type list :read-only t))
+
+(defmethod print-object ((env pty-environment) stream)
+  (print-unreadable-object (env stream :type t)
+    (format stream "~D variable~:P" (length (pty-environment-entries env)))))
 
 (defun merge-environment (overrides &key (inherit t))
   "→ the child's environment as an alist: the parent's (when INHERIT), with
@@ -72,8 +82,9 @@ restart on PTY-SPAWN-ERROR retries with another command."
         (return (backend-spawn-pty backend command
                                    :cols cols :rows rows
                                    :directory (and directory (namestring directory))
-                                   :environment (merge-environment
-                                                 environment :inherit inherit-environment)))
+                                   :environment (%make-pty-environment
+                                                 (merge-environment
+                                                  environment :inherit inherit-environment))))
       (use-value (new-command)
         :report "Start another command instead."
         :interactive (lambda ()
